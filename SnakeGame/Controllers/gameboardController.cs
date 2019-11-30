@@ -5,6 +5,7 @@ using SnakeAPI.Model.Game;
 using System;
 using System.Linq;
 using SnakeAPI.Model.Auth;
+using SnakeAPI.Model.Auth.DataHolder;
 
 namespace SnakeAPI.Controllers
 {
@@ -12,79 +13,66 @@ namespace SnakeAPI.Controllers
     [ApiController]
     public class GameboardController : ControllerBase
     {
-        public void Set(string key, string value, int? expireTime)
+        private void Set(string key, string value)
         {
-            CookieOptions option = new CookieOptions();
-            option.Expires = expireTime.HasValue ? 
-                DateTime.Now.AddMinutes(expireTime.Value) :
-                option.Expires = DateTime.Now.AddHours(2);
+            var option = new CookieOptions
+            {
+                Expires = DateTime.Now.AddHours(1)
+            };
 
             Response.Cookies.Append(key, value, option);
         }
         [HttpGet]
         public ActionResult<Game> Get()
         {
-            string token;
-            if (Request.Cookies.ContainsKey("Game")) token = Request.Cookies["Game"];
-            else
+            if (!Request.Cookies.TryGetValue("Game", out var token))
             {
                 token = UserIdentify.GenerateGuid();
-                Set("Game", token, null);
+                Set("Game", token);
             }
+
             var data = UserIdentify.GetHolder(token);
             
-            DirectionController.NewDirection += (hash, dir) =>
-            {
-                if (hash != token) return;
-                var game = data.Get(hash);
-                game.Game.Snake.First().Direction = dir;
-                data.Edit(hash, game);
-            };
-
+            
             var snapshot = data.Get(token);
-            switch (snapshot.Status)
+
+            BadRequestObjectResult EndOfGame(string message)
             {
-                case SnapshotMode.NotStarted:
-                    snapshot.Status = SnapshotMode.OnTheGame;
-                    return snapshot.Game;
+                snapshot.Status = SnapshotMode.GameIsFinished;
+                data.Delete(token);
+                Response.Cookies.Delete("Game");
+                return BadRequest(message);
+            }
 
-                case SnapshotMode.Lose:
-                    return BadRequest("You are dead :(");
+            if (snapshot.Status == SnapshotMode.NotStarted)
+            {
+                snapshot.Status = SnapshotMode.OnTheGame;
+                return snapshot.Game;
 
-                case SnapshotMode.Win:
-                    return BadRequest("You are victorious :)");
             }
             var diff = (DateTime.Now - snapshot.LastClientGet).TotalMilliseconds;
 
             var steps = (int)(diff / snapshot.Game.turnTime);
             snapshot.Game.turnNumber += steps;
 
+
             for (var i = 0; i < steps; i++)
             {
-                var res = snapshot.Game.Turn();
-                switch (res)
+                switch (snapshot.Game.Turn())
                 {
                     case TurnResult.Death:
                     case TurnResult.OutOfBorder:
-                    {
-                        snapshot.Status = SnapshotMode.Lose;
-                        data.Edit(token, snapshot); 
-                        Response.Cookies.Delete("Game");  
-                        return BadRequest("You are dead :(");
-                    }
+                        return EndOfGame("You are dead :(");
+                    
                     case TurnResult.Win:
-                    {
-                        snapshot.Status = SnapshotMode.Win;
-                        data.Edit(token, snapshot);
-                        Response.Cookies.Delete("Game");
-                        return BadRequest("You are victorious :)");
-                    }
+                        return EndOfGame("You are victorious :)");
+                    
                 }
 
                 snapshot.LastClientGet = DateTime.Now;
             }
 
-            snapshot.Game.timeUntilNextTurnMilliseconds = snapshot.Game.turnTime - diff % snapshot.Game.turnTime;
+            snapshot.Game.timeUntilNextTurnMilliseconds =(int)(snapshot.Game.turnTime - diff % snapshot.Game.turnTime);
 
 
             data.Edit(token, snapshot);

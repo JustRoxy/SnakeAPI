@@ -35,8 +35,6 @@ namespace SnakeAPI.Model.Game
             set => _turnTime = value <= 0 ? 1_000 : value;
         }
 
-        public IList<(Coordinates, Direction)> RotateZones = new List<(Coordinates, Direction)>();
-
         public List<Snake> Snake { get; set; }
         public List<Food> Food { get; set; }
 
@@ -49,7 +47,6 @@ namespace SnakeAPI.Model.Game
 
         public Game(int turnTime, GameBoard board, int foodAmount = 1)
         {
-            var rnd = new Random();
             turnNumber = 0;
             FoodAmount = foodAmount;
             this.turnTime = turnTime;
@@ -58,10 +55,20 @@ namespace SnakeAPI.Model.Game
             outOfRange = coordinates => coordinates.x <= -1 || coordinates.x >= gameBoardSize.Height
                                                             || coordinates.y <= -1
                                                             || coordinates.y >= gameBoardSize.Height;
-
             Snake = new List<Snake> { new Snake(board.Height / 2, board.Width / 2, Direction.Top) };
             Food = new List<Food>();
             GetNewFood(FoodAmount);
+        }
+
+        public Game(GameRule rule, List<Snake> snake, List<Food> food = null) : this(rule)
+        {
+            Snake = snake;
+            if (food != null) Food = food;
+            else
+            {
+                Food.Clear();
+                GetNewFood(FoodAmount);
+            }
         }
 
         private void GetNewFood()
@@ -79,28 +86,46 @@ namespace SnakeAPI.Model.Game
 
         private Coordinates GetFoodCoords() => Choose(GetNoSnakePos());
 
-        private static Coordinates Choose(List<List<int>> poses)
+        private static Coordinates Choose(List<Coordinates> poses)
         {
             if (poses.Count == 0) return Coordinates.Empty;
             var rnd = new Random();
-            var x = rnd.Next(poses.Count);
-            var y = rnd.Next(poses[x].Count);
-            return new Coordinates(x, y);
+            return poses[rnd.Next(poses.Count)];
         }
 
-        private List<List<int>> GetNoSnakePos()
+        private List<Coordinates> GetNoSnakePos()
         {
-            var x = Enumerable.Range(0, gameBoardSize.Height)
-                .Select(it => Enumerable.Range(0, gameBoardSize.Width).ToList()).ToList();
+            var poses = new List<Coordinates>();
+            for (var i = 0; i < gameBoardSize.Height; i++)
+            {
+                for (var j = 0; j < gameBoardSize.Width; j++)
+                {
+                    var coords = new Coordinates(i, j);
+                    if (Food.All(d => d.Coords != coords) && Snake.All(d => d.Coords != coords))
+                    {
+                        var last = Snake[Snake.Count - 1];
+                        var phantomSnake = new List<Snake> {new Snake(last.Coords, Reverse(last.Direction))};
+                        for (var k = 0; k < _eatenFruitCord.Count; k++)
+                        {
+                            phantomSnake.Add(new Snake(phantomSnake[k].Coords,Reverse(phantomSnake[k].Direction)));
+                        }
+                        if(!(_eatenFruitCord.Any() && phantomSnake.All(it => it.Coords != coords)))
+                            poses.Add(coords);
+                    }
+                        
+                }
+            }
 
-            if (Food.Any())
-                foreach (var food in Food)
-                    x[food.Coords.x].RemoveAt(food.Coords.y);
-
-            return x;
+            return poses;
         }
 
-        private Coordinates _eatenFruitCord;
+        private Direction Reverse(Direction dir)
+        {
+            return (Direction) ((int) dir * -1);
+        }
+        private readonly List<Coordinates> _eatenFruitCord = new List<Coordinates>();
+        
+
 
         public TurnResult Turn()
         {
@@ -115,25 +140,27 @@ namespace SnakeAPI.Model.Game
                 Snake[i].Coords = temp;
             }
 
-            //Food eating realization
-            if (!(_eatenFruitCord is null) && Snake.All(it => it.Coords != _eatenFruitCord))
+
+            //Food eating realization         //Any food which don't overlaps the snake
+            if (_eatenFruitCord.Count != 0 && _eatenFruitCord.Any(it => Snake.All(sit => sit.Coords != it)))
             {
+                var food = _eatenFruitCord.First(it => Snake.All(sit => sit.Coords != it));
                 Snake.Add(new Snake(nodeHead, Snake[0].Direction));
-                _eatenFruitCord = null;
+                _eatenFruitCord.Remove(food);
             }
 
             if (Food.Any(it => it.Coords == head.Coords))
             {
                 var fruit = Food.First(it => it.Coords == head.Coords);
-                _eatenFruitCord = fruit.Coords;
+                _eatenFruitCord.Add(fruit.Coords);
                 Food.Remove(fruit);
                 GetNewFood();
                 return TurnResult.Expand;
             }
 
+            if (Food.Count == 0) return TurnResult.Win;
             if (outOfRange(head.Coords)) return TurnResult.OutOfBorder;
 
-            if (Food.Count == 0) return TurnResult.Win;
             //Check for Snake's tail'eatin' death ._.
             return Snake.Count(it => it.Coords == head.Coords) > 1 ? TurnResult.Death : TurnResult.Ok;
         }

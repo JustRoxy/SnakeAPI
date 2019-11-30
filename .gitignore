@@ -1,1 +1,5 @@
 .vs
+SnakeGame/bin
+SnakeGame/obj
+SnakeAPI.Tests/bin
+SnakeAPI.Tests/obj

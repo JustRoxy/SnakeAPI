@@ -10,11 +10,13 @@ namespace SnakeAPI.Model
 
         public SnapshotMode Status { get; set; }
 
-        public Snapshot()
+        public Snapshot() : this(GameRule.Default)
+        {}
+        public Snapshot(GameRule rule)
         {
             Status = SnapshotMode.NotStarted;
             LastClientGet = DateTime.Now;
-            Game = new Game.Game(GameRule.Default);
+            Game = new Game.Game(rule);
         }
     }
 
@@ -22,7 +24,6 @@ namespace SnakeAPI.Model
     {
         NotStarted,
         OnTheGame,
-        Win,
-        Lose
+        GameIsFinished
     }
 }
