@@ -9,9 +9,6 @@ namespace SnakeAPI.Tests.DataHolder.Tests
     [TestFixture]
     public class DataHolderTests
     {
-        private IHolder<string> _holder;
-        private string _testGuid;
-        private Snapshot _testData;
         [SetUp]
         public void Init()
         {
@@ -19,12 +16,18 @@ namespace SnakeAPI.Tests.DataHolder.Tests
             _testGuid = Guid.NewGuid().ToString();
             _testData = new Snapshot(new GameRule(new GameBoard(30, 10), 1000, 2));
         }
+
+        private IHolder<string> _holder;
+        private string _testGuid;
+        private Snapshot _testData;
+
         [Test]
         public void Create() //is equals to [Test]Get()
         {
             _holder.Create(_testGuid, _testData);
             Assert.AreEqual(_testData, _holder.Get(_testGuid));
         }
+
         [Test]
         public void Delete()
         {
@@ -32,6 +35,7 @@ namespace SnakeAPI.Tests.DataHolder.Tests
             _holder.Delete(_testGuid);
             Assert.Throws<Exception>(() => _holder.Get(_testGuid));
         }
+
         [Test]
         public void Edit()
         {
@@ -41,6 +45,5 @@ namespace SnakeAPI.Tests.DataHolder.Tests
             _holder.Edit(_testGuid, newData);
             Assert.AreEqual(newData, _holder.Get(_testGuid));
         }
-
     }
 }

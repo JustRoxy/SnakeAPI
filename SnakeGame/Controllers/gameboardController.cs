@@ -1,11 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SnakeAPI.Model;
-using SnakeAPI.Model.Game;
-using System;
-using System.Linq;
 using SnakeAPI.Model.Auth;
-using SnakeAPI.Model.Auth.DataHolder;
+using SnakeAPI.Model.Game;
 
 namespace SnakeAPI.Controllers
 {
@@ -22,6 +20,7 @@ namespace SnakeAPI.Controllers
 
             Response.Cookies.Append(key, value, option);
         }
+
         [HttpGet]
         public ActionResult<Game> Get()
         {
@@ -32,8 +31,8 @@ namespace SnakeAPI.Controllers
             }
 
             var data = UserIdentify.GetHolder(token);
-            
-            
+
+
             var snapshot = data.Get(token);
 
             BadRequestObjectResult EndOfGame(string message)
@@ -48,11 +47,11 @@ namespace SnakeAPI.Controllers
             {
                 snapshot.Status = SnapshotMode.OnTheGame;
                 return snapshot.Game;
-
             }
+
             var diff = (DateTime.Now - snapshot.LastClientGet).TotalMilliseconds;
 
-            var steps = (int)(diff / snapshot.Game.turnTime);
+            var steps = (int) (diff / snapshot.Game.turnTime);
             snapshot.Game.turnNumber += steps;
 
 
@@ -63,16 +62,16 @@ namespace SnakeAPI.Controllers
                     case TurnResult.Death:
                     case TurnResult.OutOfBorder:
                         return EndOfGame("You are dead :(");
-                    
+
                     case TurnResult.Win:
                         return EndOfGame("You are victorious :)");
-                    
                 }
 
                 snapshot.LastClientGet = DateTime.Now;
             }
 
-            snapshot.Game.timeUntilNextTurnMilliseconds =(int)(snapshot.Game.turnTime - diff % snapshot.Game.turnTime);
+            snapshot.Game.timeUntilNextTurnMilliseconds =
+                (int) (snapshot.Game.turnTime - diff % snapshot.Game.turnTime);
 
 
             data.Edit(token, snapshot);

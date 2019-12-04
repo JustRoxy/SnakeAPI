@@ -1,8 +1,8 @@
-﻿using SnakeAPI.Model.Game.Abstractions;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using SnakeAPI.Model.Game.Abstractions;
 
 namespace SnakeAPI.Model.Game
 {
@@ -20,11 +20,47 @@ namespace SnakeAPI.Model.Game
 
     public class Game
     {
-        public int turnNumber { get; set; }
+        private readonly List<Coordinates> _eatenFruitCord = new List<Coordinates>();
+
+        private readonly Func<Coordinates, bool> outOfRange;
         private int _turnTime;
 
-        [JsonIgnore]
-        private int FoodAmount { get; set; }
+        public Game(GameRule rule) : this(rule.TurnTime, rule.GameBoard, rule.FoodAmount)
+        {
+        }
+
+        public Game(int turnTime, GameBoard board, int foodAmount = 1)
+        {
+            turnNumber = 0;
+            FoodAmount = foodAmount;
+            this.turnTime = turnTime;
+            gameBoardSize = board;
+
+            outOfRange = coordinates => coordinates.x <= -1 || coordinates.x >= gameBoardSize.Height
+                                                            || coordinates.y <= -1
+                                                            || coordinates.y >= gameBoardSize.Height;
+            Snake = new List<Snake> {new Snake(board.Height / 2, board.Width / 2, Direction.Top)};
+            Food = new List<Food>();
+            GetNewFood(FoodAmount);
+        }
+
+        public Game(GameRule rule, List<Snake> snake, List<Food> food = null) : this(rule)
+        {
+            Snake = snake;
+            if (food != null)
+            {
+                Food = food;
+            }
+            else
+            {
+                Food.Clear();
+                GetNewFood(FoodAmount);
+            }
+        }
+
+        public int turnNumber { get; set; }
+
+        [JsonIgnore] private int FoodAmount { get; }
 
         public double timeUntilNextTurnMilliseconds { get; set; }
 
@@ -40,37 +76,6 @@ namespace SnakeAPI.Model.Game
 
         public GameBoard gameBoardSize { get; set; }
 
-        private readonly Func<Coordinates, bool> outOfRange;
-
-        public Game(GameRule rule) : this(rule.TurnTime, rule.GameBoard, rule.FoodAmount)
-        { }
-
-        public Game(int turnTime, GameBoard board, int foodAmount = 1)
-        {
-            turnNumber = 0;
-            FoodAmount = foodAmount;
-            this.turnTime = turnTime;
-            gameBoardSize = board;
-
-            outOfRange = coordinates => coordinates.x <= -1 || coordinates.x >= gameBoardSize.Height
-                                                            || coordinates.y <= -1
-                                                            || coordinates.y >= gameBoardSize.Height;
-            Snake = new List<Snake> { new Snake(board.Height / 2, board.Width / 2, Direction.Top) };
-            Food = new List<Food>();
-            GetNewFood(FoodAmount);
-        }
-
-        public Game(GameRule rule, List<Snake> snake, List<Food> food = null) : this(rule)
-        {
-            Snake = snake;
-            if (food != null) Food = food;
-            else
-            {
-                Food.Clear();
-                GetNewFood(FoodAmount);
-            }
-        }
-
         private void GetNewFood()
         {
             var cords = GetFoodCoords();
@@ -84,7 +89,10 @@ namespace SnakeAPI.Model.Game
                 GetNewFood();
         }
 
-        private Coordinates GetFoodCoords() => Choose(GetNoSnakePos());
+        private Coordinates GetFoodCoords()
+        {
+            return Choose(GetNoSnakePos());
+        }
 
         private static Coordinates Choose(List<Coordinates> poses)
         {
@@ -97,22 +105,17 @@ namespace SnakeAPI.Model.Game
         {
             var poses = new List<Coordinates>();
             for (var i = 0; i < gameBoardSize.Height; i++)
+            for (var j = 0; j < gameBoardSize.Width; j++)
             {
-                for (var j = 0; j < gameBoardSize.Width; j++)
+                var coords = new Coordinates(i, j);
+                if (Food.All(d => d.Coords != coords) && Snake.All(d => d.Coords != coords))
                 {
-                    var coords = new Coordinates(i, j);
-                    if (Food.All(d => d.Coords != coords) && Snake.All(d => d.Coords != coords))
-                    {
-                        var last = Snake[Snake.Count - 1];
-                        var phantomSnake = new List<Snake> {new Snake(last.Coords, Reverse(last.Direction))};
-                        for (var k = 0; k < _eatenFruitCord.Count; k++)
-                        {
-                            phantomSnake.Add(new Snake(phantomSnake[k].Coords,Reverse(phantomSnake[k].Direction)));
-                        }
-                        if(!(_eatenFruitCord.Any() && phantomSnake.All(it => it.Coords != coords)))
-                            poses.Add(coords);
-                    }
-                        
+                    var last = Snake[Snake.Count - 1];
+                    var phantomSnake = new List<Snake> {new Snake(last.Coords, Reverse(last.Direction))};
+                    for (var k = 0; k < _eatenFruitCord.Count; k++)
+                        phantomSnake.Add(new Snake(phantomSnake[k].Coords, Reverse(phantomSnake[k].Direction)));
+                    if (!(_eatenFruitCord.Any() && phantomSnake.All(it => it.Coords != coords)))
+                        poses.Add(coords);
                 }
             }
 
@@ -123,8 +126,6 @@ namespace SnakeAPI.Model.Game
         {
             return (Direction) ((int) dir * -1);
         }
-        private readonly List<Coordinates> _eatenFruitCord = new List<Coordinates>();
-        
 
 
         public TurnResult Turn()
@@ -135,7 +136,7 @@ namespace SnakeAPI.Model.Game
             Snake[0].Coords = CalculateStep(Snake[0]);
             for (var i = 1; i < Snake.Count; i++)
             {
-                var temp = nodeHead;       //Move the tail behind the head
+                var temp = nodeHead; //Move the tail behind the head
                 nodeHead = Snake[i].Coords;
                 Snake[i].Coords = temp;
             }
@@ -168,13 +169,13 @@ namespace SnakeAPI.Model.Game
         private Coordinates CalculateStep(Snake old)
         {
             return old.Direction switch
-            {
+                {
                 Direction.Top => new Coordinates(old.x + 1, old.y),
                 Direction.Bottom => new Coordinates(old.x - 1, old.y),
                 Direction.Left => new Coordinates(old.x, old.y - 1),
                 Direction.Right => new Coordinates(old.x, old.y + 1),
                 _ => throw new ArgumentOutOfRangeException(nameof(old.Direction), old.Direction, null),
-            };
+                };
         }
     }
 

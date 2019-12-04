@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\roxy\\Documents\\Kaspersky\\Homework\\C#\\HW1\\SnakeGame\\SnakeAPI.csproj": {}
+    "C:\\Users\\roxy\\Documents\\Kaspersky\\Snake\\CSharp2019\\Snake\\SnakeGame\\SnakeAPI.csproj": {}
   },
   "projects": {
-    "C:\\Users\\roxy\\Documents\\Kaspersky\\Homework\\C#\\HW1\\SnakeGame\\SnakeAPI.csproj": {
+    "C:\\Users\\roxy\\Documents\\Kaspersky\\Snake\\CSharp2019\\Snake\\SnakeGame\\SnakeAPI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\roxy\\Documents\\Kaspersky\\Homework\\C#\\HW1\\SnakeGame\\SnakeAPI.csproj",
+        "projectUniqueName": "C:\\Users\\roxy\\Documents\\Kaspersky\\Snake\\CSharp2019\\Snake\\SnakeGame\\SnakeAPI.csproj",
         "projectName": "SnakeAPI",
-        "projectPath": "C:\\Users\\roxy\\Documents\\Kaspersky\\Homework\\C#\\HW1\\SnakeGame\\SnakeAPI.csproj",
+        "projectPath": "C:\\Users\\roxy\\Documents\\Kaspersky\\Snake\\CSharp2019\\Snake\\SnakeGame\\SnakeAPI.csproj",
         "packagesPath": "C:\\Users\\roxy\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\roxy\\Documents\\Kaspersky\\Homework\\C#\\HW1\\SnakeGame\\obj\\",
+        "outputPath": "C:\\Users\\roxy\\Documents\\Kaspersky\\Snake\\CSharp2019\\Snake\\SnakeGame\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\roxy\\AppData\\Roaming\\NuGet\\NuGet.Config",

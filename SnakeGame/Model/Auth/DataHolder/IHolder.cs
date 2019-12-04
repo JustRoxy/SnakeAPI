@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace SnakeAPI.Model.Auth.DataHolder
+﻿namespace SnakeAPI.Model.Auth.DataHolder
 {
     public interface IHolder<in T>
     {

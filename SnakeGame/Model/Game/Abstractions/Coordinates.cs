@@ -5,6 +5,13 @@ namespace SnakeAPI.Model.Game.Abstractions
     public class Coordinates
     {
         public static Coordinates Empty = new Coordinates(-1, -1);
+
+        public Coordinates(int x, int y)
+        {
+            this.x = x;
+            this.y = y;
+        }
+
         public int x { get; set; }
         public int y { get; set; }
 
@@ -14,12 +21,9 @@ namespace SnakeAPI.Model.Game.Abstractions
             return one.x == two.x && one.y == two.y;
         }
 
-        public static bool operator !=(Coordinates one, Coordinates two) => !(one == two);
-
-        public Coordinates(int x, int y)
+        public static bool operator !=(Coordinates one, Coordinates two)
         {
-            this.x = x;
-            this.y = y;
+            return !(one == two);
         }
     }
 }
